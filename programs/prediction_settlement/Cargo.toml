@@ -1,0 +1,40 @@
+[package]
+name = "prediction_settlement"
+version = "0.1.0"
+description = "Created with Arcium & Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "prediction_settlement"
+
+[features]
+# `test-resolve` compiles the `resolve_match_test` bypass instruction so the
+# encrypted submit -> settle payout flow can be tested without a real Txoracle
+# proof (we have no subscribe token on devnet yet). `arcium build` has no
+# --features passthrough, so it lives in `default` for now. REMOVE it from
+# `default` (set `default = []`) before any mainnet build.
+default = ["test-resolve"]
+test-resolve = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "arcium-anchor/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = { version = "1.0.2", features = ["init-if-needed"] }
+arcium-client = { default-features = false, version = "=0.11.1" }
+arcium-macros = "=0.11.1"
+arcium-anchor = "=0.11.1"
+# pin so that we do not have 1.13.*
+unicode-segmentation = { version = "=1.12.0"}
+# pin so that we do not have edition = 2024
+hashbrown = { version = "=0.16.1"}
+indexmap = { version = "=2.13.1"}
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
