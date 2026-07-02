@@ -75,6 +75,24 @@ pub fn resolve_match_handler(
     require!(verdict, ErrorCode::OracleRejected);
 
     let market = &mut ctx.accounts.market;
+
+    // A full-time+extra-time DRAW on a knockout fixture cannot be settled from
+    // goal totals alone: the winner is decided by a penalty shootout, and the
+    // full-game keys 1/2 we verify exclude shootout goals. The PE period keys
+    // are unverified (TxLINE's published period table doesn't match the feed —
+    // HT occupies +2000, shifting the H2/ET slots — and no finished shootout
+    // fixture has been available to confirm the PE slot). So flag the market
+    // for manual review instead of resolving as a plain draw. `resolved` stays
+    // false, blocking settlement; shootout resolution is deferred.
+    if claimed_outcome == OUTCOME_DRAW && market.is_knockout {
+        market.needs_manual_review = true;
+        msg!(
+            "Fixture {}: knockout draw — flagged for manual review (penalty-shootout resolution deferred)",
+            market.fixture_id
+        );
+        return Ok(());
+    }
+
     market.resolved = true;
     market.outcome = claimed_outcome;
 

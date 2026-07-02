@@ -19,6 +19,7 @@ import {
   Keypair,
   SystemProgram,
   LAMPORTS_PER_SOL,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
 import * as BNmod from "bn.js";
 import {
@@ -243,7 +244,7 @@ describe("FULL real demo flow (submit -> real resolve -> settle)", () => {
 
     // ---- 1) init market ----------------------------------------------------
     await program.methods
-      .initMarket(marketFixtureId, STAKE)
+      .initMarket(marketFixtureId, STAKE, true) // knockout fixture
       .accountsPartial({
         authority: owner.publicKey,
         market,
@@ -304,6 +305,11 @@ describe("FULL real demo flow (submit -> real resolve -> settle)", () => {
         statB,
         { subtract: {} },
       )
+      // Two-stat validate_stat (home−away) over a real proof can exceed the 200k
+      // default CU limit (e.g. extra-time matches); raise the budget.
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+      ])
       .accountsPartial({
         authority: owner.publicKey,
         market,

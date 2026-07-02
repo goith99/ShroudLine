@@ -33,6 +33,7 @@ pub fn init_market_handler(
     ctx: Context<InitMarket>,
     fixture_id: i64,
     stake_amount: u64,
+    is_knockout: bool,
 ) -> Result<()> {
     let market = &mut ctx.accounts.market;
     market.authority = ctx.accounts.authority.key();
@@ -42,6 +43,8 @@ pub fn init_market_handler(
     market.prediction_count = 0;
     market.resolved = false;
     market.outcome = OUTCOME_UNRESOLVED;
+    market.is_knockout = is_knockout;
+    market.needs_manual_review = false;
     market.bump = ctx.bumps.market;
     market.vault_bump = ctx.bumps.vault;
 

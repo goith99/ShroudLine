@@ -6,7 +6,12 @@
 //     yarn ts-mocha -p ./tsconfig.json -t 100000000 scripts/real-resolve.ts
 
 import * as anchor from "@anchor-lang/core";
-import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  PublicKey,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+  ComputeBudgetProgram,
+} from "@solana/web3.js";
 import * as BNmod from "bn.js";
 import * as fs from "fs";
 
@@ -63,7 +68,7 @@ describe("real oracle-verified resolve (devnet)", () => {
     const existing = await provider.connection.getAccountInfo(market);
     if (!existing) {
       const sig = await program.methods
-        .initMarket(new BN(FIXTURE), STAKE)
+        .initMarket(new BN(FIXTURE), STAKE, true) // knockout fixture
         .accountsPartial({
           authority: owner.publicKey,
           market,
@@ -128,6 +133,10 @@ describe("real oracle-verified resolve (devnet)", () => {
         statB,
         { subtract: {} },
       )
+      // Two-stat validate_stat (home−away) can exceed the 200k default CU limit.
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+      ])
       .accountsPartial({
         authority: owner.publicKey,
         market,

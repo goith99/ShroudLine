@@ -48,7 +48,10 @@ describe("TxLINE fetch proof (read-only)", () => {
       })
       .filter((x) => x !== null);
     console.log("SSE event count:", events.length);
-    const last = events[events.length - 1];
+    // The trailing event can be a "disconnected" marker; the authoritative final
+    // score is the game_finalised event.
+    const fin = [...events].reverse().find((e) => /final/i.test(e.Action || ""));
+    const last = fin ?? events[events.length - 1];
     const seq = Number(process.env.SEQ ?? last.Seq);
     console.log(
       `final event: Action=${last.Action} Seq=${last.Seq} Stats{1:${last.Stats?.["1"]}, 2:${last.Stats?.["2"]}}`,

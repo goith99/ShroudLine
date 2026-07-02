@@ -144,7 +144,7 @@ describe("PredictionSettlement", () => {
 
   it("creates the market and funds the two predictors", async () => {
     const sig = await program.methods
-      .initMarket(fixtureId, STAKE)
+      .initMarket(fixtureId, STAKE, false)
       .accountsPartial({
         authority: owner.publicKey,
         market,
@@ -215,7 +215,7 @@ describe("PredictionSettlement", () => {
     const probeFixture = new anchor.BN(Date.now() + 1);
     const probeMarket = marketPda(owner.publicKey, probeFixture);
     await program.methods
-      .initMarket(probeFixture, STAKE)
+      .initMarket(probeFixture, STAKE, false)
       .accountsPartial({
         authority: owner.publicKey,
         market: probeMarket,

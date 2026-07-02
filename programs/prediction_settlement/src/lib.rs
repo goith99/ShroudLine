@@ -19,8 +19,13 @@ pub mod prediction_settlement {
     // ---- Prediction-market instructions ----
 
     /// Create a market for a TxODDS fixture with a fixed per-prediction stake.
-    pub fn init_market(ctx: Context<InitMarket>, fixture_id: i64, stake_amount: u64) -> Result<()> {
-        init_market::init_market_handler(ctx, fixture_id, stake_amount)
+    pub fn init_market(
+        ctx: Context<InitMarket>,
+        fixture_id: i64,
+        stake_amount: u64,
+        is_knockout: bool,
+    ) -> Result<()> {
+        init_market::init_market_handler(ctx, fixture_id, stake_amount, is_knockout)
     }
 
     /// Resolve the market by proving the outcome through a Txoracle `validate_stat` CPI.
