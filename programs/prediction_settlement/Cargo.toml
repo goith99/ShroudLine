@@ -14,7 +14,7 @@ name = "prediction_settlement"
 # proof (we have no subscribe token on devnet yet). `arcium build` has no
 # --features passthrough, so it lives in `default` for now. REMOVE it from
 # `default` (set `default = []`) before any mainnet build.
-default = ["test-resolve"]
+default = []
 test-resolve = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
