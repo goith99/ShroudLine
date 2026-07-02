@@ -29,7 +29,7 @@ describe("real oracle-verified resolve (devnet)", () => {
     anchor.setProvider(provider);
     const owner = (provider.wallet as anchor.Wallet).payer;
     const idl = JSON.parse(
-      fs.readFileSync("target/idl/prediction_settlement.json", "utf-8"),
+      fs.readFileSync("target/idl/shroudline.json", "utf-8"),
     );
     const program = new anchor.Program(idl, provider);
     const programId = program.programId;

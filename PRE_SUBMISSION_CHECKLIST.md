@@ -13,11 +13,11 @@ build, the "trustless oracle settlement" differentiator is a lie — anyone can
 resolve any market they own to any outcome.
 
 Because `arcium build` has no `--features` passthrough, `test-resolve` currently
-lives in `programs/prediction_settlement/Cargo.toml` under
+lives in `programs/shroudline/Cargo.toml` under
 `default = ["test-resolve"]`. Before the final deploy you MUST remove it.
 
 - [ ] Remove `test-resolve` from `default` in
-      `programs/prediction_settlement/Cargo.toml` (set `default = []`), **or**
+      `programs/shroudline/Cargo.toml` (set `default = []`), **or**
       build with `--no-default-features`.
 - [ ] Rebuild (`arcium build`) and redeploy the devnet program.
 - [ ] **Verify `resolve_match_test` does NOT appear in the deployed program's IDL**
@@ -29,7 +29,7 @@ lives in `programs/prediction_settlement/Cargo.toml` under
         grep -c resolve_match_test    # expect: 0
 
       # local build artifact sanity check too
-      grep -c resolve_match_test target/idl/prediction_settlement.json  # expect: 0
+      grep -c resolve_match_test target/idl/shroudline.json  # expect: 0
       ```
 
 - [ ] Record the demo video only against this cleaned deployment, and prove

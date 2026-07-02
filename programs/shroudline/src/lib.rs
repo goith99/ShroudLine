@@ -13,7 +13,7 @@ pub use state::*;
 declare_id!("6pL5a3nAUGa8Gfnkz1K936quUJs59aXe8Ybekk7aWD5a");
 
 #[arcium_program]
-pub mod prediction_settlement {
+pub mod shroudline {
     use super::*;
 
     // ---- Prediction-market instructions ----

@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-prediction_settlement = "6pL5a3nAUGa8Gfnkz1K936quUJs59aXe8Ybekk7aWD5a"
+shroudline = "6pL5a3nAUGa8Gfnkz1K936quUJs59aXe8Ybekk7aWD5a"
 
 [programs.devnet]
-prediction_settlement = "6pL5a3nAUGa8Gfnkz1K936quUJs59aXe8Ybekk7aWD5a"
+shroudline = "6pL5a3nAUGa8Gfnkz1K936quUJs59aXe8Ybekk7aWD5a"
 
 [provider]
 cluster = "localnet"

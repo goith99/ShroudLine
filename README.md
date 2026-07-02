@@ -1,7 +1,7 @@
-# prediction_settlement
+# ShroudLine
 
-**Private Prediction Settlement** — encrypted match predictions settled by a
-trustless on-chain oracle. Users submit predictions **encrypted** via Arcium
+**ShroudLine** — private prediction settlement: encrypted match predictions
+settled by a trustless on-chain oracle. Users submit predictions **encrypted** via Arcium
 MPC (no one, not even the market creator, sees a guess before settlement), the
 match result is proven **trustlessly** by a CPI into TxODDS's on-chain
 `Txoracle` (`validate_stat`), and Arcium MPC then settles who was right and pays
@@ -52,9 +52,9 @@ arcium test
 
 | Path | Purpose |
 |------|---------|
-| `programs/prediction_settlement/` | Anchor program: queues computations, handles callbacks |
+| `programs/shroudline/` | Anchor program: queues computations, handles callbacks |
 | `encrypted-ixs/` | Arcis confidential instructions |
-| `tests/prediction_settlement.ts` | TypeScript integration tests |
+| `tests/shroudline.ts` | TypeScript integration tests |
 | `Arcium.toml` | Localnet and cluster configuration |
 
 ## Docs

@@ -1,7 +1,7 @@
 import * as anchor from "@anchor-lang/core";
 import { Program } from "@anchor-lang/core";
 import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { PredictionSettlement } from "../target/types/prediction_settlement";
+import { Shroudline } from "../target/types/shroudline";
 import { randomBytes } from "crypto";
 import {
   awaitComputationFinalization,
@@ -65,10 +65,10 @@ const TXORACLE_PROGRAM_ID = new PublicKey(
 const STAKE = new anchor.BN(0.01 * LAMPORTS_PER_SOL); // 0.01 SOL per prediction
 const USER_FUNDING = 0.3 * LAMPORTS_PER_SOL; // covers stake + rent + arcium/tx fees
 
-describe("PredictionSettlement", () => {
+describe("Shroudline", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace
-    .PredictionSettlement as Program<PredictionSettlement>;
+    .Shroudline as Program<Shroudline>;
   const provider = anchor.getProvider() as anchor.AnchorProvider;
   const arciumProgram = getArciumProgram(provider);
 

@@ -45,7 +45,7 @@ describe("throttled circuit upload (devnet, one-time)", () => {
     const arcium = getArciumProgram(provider);
 
     const idl = JSON.parse(
-      fs.readFileSync("target/idl/prediction_settlement.json", "utf-8"),
+      fs.readFileSync("target/idl/shroudline.json", "utf-8"),
     );
     const program = new anchor.Program(idl, provider);
     const programId = program.programId;

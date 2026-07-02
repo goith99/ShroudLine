@@ -5,7 +5,7 @@ import pkg from "@anchor-lang/core";
 const { Program, AnchorProvider, Wallet, BN, web3 } = pkg;
 const { Connection, PublicKey, Keypair } = web3;
 
-const idl = JSON.parse(fs.readFileSync("./target/idl/prediction_settlement.json", "utf8"));
+const idl = JSON.parse(fs.readFileSync("./target/idl/shroudline.json", "utf8"));
 const TXORACLE = new PublicKey("6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J");
 const DAILY_SCORES = new PublicKey("69SexUQvQ9uNpyx6bgDLVoQ5uKkbn3uRxZXCJ5KVZ7QL"); // epochDay 20635
 const FIXTURE_ID = new BN("18179759");
