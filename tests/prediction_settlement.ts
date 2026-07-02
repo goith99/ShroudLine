@@ -291,7 +291,11 @@ describe("PredictionSettlement", () => {
   // ----- resolve_match_test: bypass to unblock settlement ----------------
 
   it("resolves the real market via the test bypass", async () => {
-    await program.methods
+    // `resolve_match_test` is compiled out of the default (demo) build, so it is
+    // absent from the generated types. Cast to keep this file compiling; this
+    // test only passes when built with `--features test-resolve`. The real
+    // end-to-end flow lives in scripts/demo-flow.ts.
+    await (program.methods as any)
       .resolveMatchTest(OUTCOME_HOME_WIN)
       .accountsPartial({ authority: owner.publicKey, market })
       .signers([owner])

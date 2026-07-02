@@ -174,6 +174,27 @@ describe("FULL real demo flow (submit -> real resolve -> settle)", () => {
       await provider.sendAndConfirm(tx, [owner]);
     };
 
+    // Return leftover SOL from an ephemeral predictor wallet to the deployer so
+    // repeated demo runs (e.g. for recording) don't keep draining it. The owner
+    // (provider wallet) is the fee payer, so the user's FULL remaining balance
+    // comes back and the throwaway account zeroes out.
+    const refundToOwner = async (user: Keypair, label: string): Promise<number> => {
+      const bal = await provider.connection.getBalance(user.publicKey);
+      if (bal <= 0) return 0;
+      const tx = new anchor.web3.Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: user.publicKey,
+          toPubkey: owner.publicKey,
+          lamports: bal,
+        }),
+      );
+      await provider.sendAndConfirm(tx, [user]);
+      console.log(
+        `  refunded ${bal / LAMPORTS_PER_SOL} SOL from ${label} → deployer`,
+      );
+      return bal;
+    };
+
     const submitPrediction = async (user: Keypair, value: number) => {
       const priv = x25519.utils.randomSecretKey();
       const pub = x25519.getPublicKey(priv);
@@ -319,6 +340,14 @@ describe("FULL real demo flow (submit -> real resolve -> settle)", () => {
     console.log(
       `incorrect predictor: settled=${pi.settled} correct=${pi.correct} delta=${(i1 - i0) / LAMPORTS_PER_SOL} SOL (expect 0)`,
     );
+
+    // Sweep leftover SOL back to the deployer (before any assertion, so funds are
+    // always recovered even if the payout check below fails).
+    let recovered = 0;
+    recovered += await refundToOwner(userCorrect, "correct predictor");
+    recovered += await refundToOwner(userIncorrect, "incorrect predictor");
+    console.log(`recovered ${recovered / LAMPORTS_PER_SOL} SOL to deployer`);
+
     if (
       !(pc.settled && pc.correct && c1 - c0 === STAKE.toNumber() * 2) ||
       !(pi.settled && !pi.correct && i1 - i0 === 0)
