@@ -28,31 +28,29 @@ pub mod shroudline {
         init_market::init_market_handler(ctx, fixture_id, stake_amount, is_knockout)
     }
 
-    /// Resolve the market by proving the outcome through a Txoracle `validate_stat` CPI.
+    /// Resolve the market by proving the outcome through a Txoracle
+    /// `validate_stat_v2` CPI. Handles regulation, extra-time and
+    /// penalty-shootout outcomes (see `resolve_match_v2_handler`).
     #[allow(clippy::too_many_arguments)]
-    pub fn resolve_match(
+    pub fn resolve_match_v2(
         ctx: Context<ResolveMatch>,
         claimed_outcome: u8,
         ts: i64,
         fixture_summary: ScoresBatchSummary,
         fixture_proof: Vec<ProofNode>,
         main_tree_proof: Vec<ProofNode>,
-        predicate: TraderPredicate,
-        stat_a: StatTerm,
-        stat_b: Option<StatTerm>,
-        op: Option<BinaryExpression>,
+        event_stat_root: [u8; 32],
+        stats: Vec<StatLeaf>,
     ) -> Result<()> {
-        resolve_match::resolve_match_handler(
+        resolve_match::resolve_match_v2_handler(
             ctx,
             claimed_outcome,
             ts,
             fixture_summary,
             fixture_proof,
             main_tree_proof,
-            predicate,
-            stat_a,
-            stat_b,
-            op,
+            event_stat_root,
+            stats,
         )
     }
 

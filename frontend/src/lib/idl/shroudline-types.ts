@@ -267,19 +267,21 @@ export type Shroudline = {
       "args": []
     },
     {
-      "name": "resolveMatch",
+      "name": "resolveMatchV2",
       "docs": [
-        "Resolve the market by proving the outcome through a Txoracle `validate_stat` CPI."
+        "Resolve the market by proving the outcome through a Txoracle",
+        "`validate_stat_v2` CPI. Handles regulation, extra-time and",
+        "penalty-shootout outcomes (see `resolve_match_v2_handler`)."
       ],
       "discriminator": [
-        73,
-        0,
-        15,
-        197,
-        178,
-        47,
-        21,
-        193
+        198,
+        209,
+        10,
+        200,
+        250,
+        124,
+        200,
+        132
       ],
       "accounts": [
         {
@@ -345,37 +347,20 @@ export type Shroudline = {
           }
         },
         {
-          "name": "predicate",
+          "name": "eventStatRoot",
           "type": {
-            "defined": {
-              "name": "traderPredicate"
-            }
+            "array": [
+              "u8",
+              32
+            ]
           }
         },
         {
-          "name": "statA",
+          "name": "stats",
           "type": {
-            "defined": {
-              "name": "statTerm"
-            }
-          }
-        },
-        {
-          "name": "statB",
-          "type": {
-            "option": {
+            "vec": {
               "defined": {
-                "name": "statTerm"
-              }
-            }
-          }
-        },
-        {
-          "name": "op",
-          "type": {
-            "option": {
-              "defined": {
-                "name": "binaryExpression"
+                "name": "statLeaf"
               }
             }
           }
@@ -968,31 +953,36 @@ export type Shroudline = {
     },
     {
       "code": 6008,
+      "name": "invalidStatLayout",
+      "msg": "Stats array does not match the required key layout for the claimed outcome"
+    },
+    {
+      "code": 6009,
       "name": "invalidOracleProgram",
       "msg": "CPI target is not the expected Txoracle program"
     },
     {
-      "code": 6009,
+      "code": 6010,
       "name": "oracleNoReturnData",
       "msg": "Txoracle returned no data from validate_stat"
     },
     {
-      "code": 6010,
+      "code": 6011,
       "name": "oracleRejected",
       "msg": "Oracle rejected the claimed outcome (validate_stat returned false)"
     },
     {
-      "code": 6011,
+      "code": 6012,
       "name": "alreadySettled",
       "msg": "Prediction has already been settled"
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "predictionNotStored",
       "msg": "Encrypted prediction state has not been stored yet"
     },
     {
-      "code": 6013,
+      "code": 6014,
       "name": "insufficientVault",
       "msg": "Vault has insufficient funds for payout"
     }
@@ -1044,20 +1034,6 @@ export type Shroudline = {
               "u8",
               64
             ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "binaryExpression",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "add"
-          },
-          {
-            "name": "subtract"
           }
         ]
       }
@@ -1270,23 +1246,6 @@ export type Shroudline = {
                 "name": "leaderSelector"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "comparison",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "greaterThan"
-          },
-          {
-            "name": "lessThan"
-          },
-          {
-            "name": "equalTo"
           }
         ]
       }
@@ -1702,18 +1661,9 @@ export type Shroudline = {
             "docs": [
               "True if this fixture is a knockout-stage match (can go to extra time /",
               "penalties). Set at init by the (off-chain) creator from the competition",
-              "round; group-stage matches set this false."
-            ],
-            "type": "bool"
-          },
-          {
-            "name": "needsManualReview",
-            "docs": [
-              "Set true when the oracle confirms a full-time+extra-time DRAW on a",
-              "knockout fixture. Goal totals (stat keys 1/2, which include ET) can't",
-              "identify a penalty-shootout winner, so the market is flagged for manual",
-              "review instead of silently resolving as a draw. Settlement stays blocked",
-              "(resolved remains false) while this is true."
+              "round; group-stage matches set this false. A knockout can be resolved",
+              "across regulation, extra-time and penalty-shootout outcomes via the",
+              "`validate_stat_v2` path; a group match additionally allows a DRAW."
             ],
             "type": "bool"
           },
@@ -2108,13 +2058,17 @@ export type Shroudline = {
     },
     {
       "name": "scoreStat",
+      "docs": [
+        "A single provable key-value statistic — the leaf of the inner-most tree."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "key",
             "docs": [
-              "Stat key (e.g. 1 = home goals, 2 = away goals). See PROJECT_CONTEXT.md."
+              "Stat key (base + period offset), e.g. 1 = home full-game goals,",
+              "6001 = home penalty-shootout goals. See constants.rs."
             ],
             "type": "u32"
           },
@@ -2256,25 +2210,20 @@ export type Shroudline = {
       }
     },
     {
-      "name": "statTerm",
+      "name": "statLeaf",
+      "docs": [
+        "One stat to prove plus the Merkle branch that commits it. All leaves in a",
+        "`StatValidationInput` share the top-level `event_stat_root`."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "statToProve",
+            "name": "stat",
             "type": {
               "defined": {
                 "name": "scoreStat"
               }
-            }
-          },
-          {
-            "name": "eventStatRoot",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
             }
           },
           {
@@ -2324,26 +2273,6 @@ export type Shroudline = {
           {
             "name": "timestamp",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "traderPredicate",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "threshold",
-            "type": "i32"
-          },
-          {
-            "name": "comparison",
-            "type": {
-              "defined": {
-                "name": "comparison"
-              }
-            }
           }
         ]
       }

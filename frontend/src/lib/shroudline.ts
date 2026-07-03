@@ -41,11 +41,22 @@ export interface MarketEntry {
   account: MarketAccount;
 }
 
+// Exact byte length of a current-layout Market account: 8 (discriminator) +
+// Market::INIT_SPACE (authority 32 + fixture_id 8 + stake_amount 8 +
+// total_staked 8 + prediction_count 8 + resolved 1 + outcome 1 + is_knockout 1
+// + bump 1 + vault_bump 1 = 69). Older deploys used different layouts (e.g. the
+// pre-V2 layout carried an extra `needs_manual_review` byte), so a length that
+// doesn't match this is a stale account we must ignore — the shared struct name
+// means old accounts still share our discriminator and can otherwise decode.
+const MARKET_ACCOUNT_LEN = 8 + 69;
+
 /**
- * Fetch every Market account. Unlike `program.account.market.all()`, this
- * decodes accounts one at a time and skips any that fail — devnet still holds
+ * Fetch every current-layout Market account. Unlike
+ * `program.account.market.all()`, this filters to the exact current account
+ * size and decodes one at a time, skipping anything else — devnet still holds
  * stale Market accounts from earlier program deploys with a different layout,
- * and a single bad account must not take down the whole list.
+ * and a single bad account must neither appear as a duplicate nor take down the
+ * whole list.
  */
 export async function fetchAllMarkets(
   connection: Connection,
@@ -56,6 +67,7 @@ export async function fetchAllMarkets(
   ).find((a) => a.name === "Market")!.discriminator;
   const raw = await connection.getProgramAccounts(PROGRAM_ID, {
     filters: [
+      { dataSize: MARKET_ACCOUNT_LEN },
       { memcmp: { offset: 0, bytes: bs58.encode(discriminator) } },
     ],
   });
@@ -134,25 +146,27 @@ export async function fetchMxePublicKey(
 
 // ---- presentation helpers --------------------------------------------------
 
-export type MarketStatus = "open" | "resolved" | "review";
+export type MarketStatus = "open" | "resolved";
 
 /** On-chain status — drives what actions are possible. */
 export function marketStatus(m: MarketAccount): MarketStatus {
   if (m.resolved) return "resolved";
-  if (m.needsManualReview) return "review";
   return "open";
 }
 
-export type DisplayStatus = "open" | "awaiting" | "settled" | "review";
+export type DisplayStatus = "open" | "awaiting" | "settled";
 
 /**
  * Status as shown to users. An unresolved market whose kickoff has passed
  * reads "Awaiting Result" — display only; the program still accepts
  * predictions until the market is resolved.
+ *
+ * Note: resolution now covers regulation, extra-time and penalty-shootout
+ * outcomes (via `resolve_match_v2`), so there is no longer a "manual review"
+ * state for knockout draws.
  */
 export function displayStatus(m: MarketAccount): DisplayStatus {
   if (m.resolved) return "settled";
-  if (m.needsManualReview) return "review";
   const meta = fixtureMeta(m.fixtureId.toString());
   if (meta && Date.now() > Date.parse(meta.kickoffUtc)) return "awaiting";
   return "open";
@@ -162,7 +176,6 @@ export const STATUS_LABEL: Record<DisplayStatus, string> = {
   open: "Open",
   awaiting: "Awaiting Result",
   settled: "Settled",
-  review: "Under Review",
 };
 
 export function outcomeLabel(m: MarketAccount): string {

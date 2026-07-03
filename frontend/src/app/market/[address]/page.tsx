@@ -33,7 +33,7 @@ import {
   STATUS_LABEL,
   vaultPda,
 } from "@/lib/shroudline";
-import { fixtureMeta } from "@/lib/fixtures";
+import { fixtureMeta, fixtureResult, resultDecidedLabel } from "@/lib/fixtures";
 
 type Busy =
   | null
@@ -76,6 +76,10 @@ function MatchBoard({ market }: { market: MarketAccount }) {
     );
   }
   const winner = market.resolved ? market.outcome : null;
+  const result = market.resolved
+    ? fixtureResult(market.fixtureId.toString())
+    : undefined;
+  const decided = result ? resultDecidedLabel(result) : undefined;
   return (
     <>
       <div className="match-board">
@@ -89,6 +93,7 @@ function MatchBoard({ market }: { market: MarketAccount }) {
           }`}
         >
           <span className="sb-name">{meta.home}</span>
+          {result && <span className="sb-score">{result.homeScore}</span>}
           {winner === OUTCOME_HOME && <span className="sb-tag">Win</span>}
         </div>
         <div
@@ -101,8 +106,14 @@ function MatchBoard({ market }: { market: MarketAccount }) {
           }`}
         >
           <span className="sb-name">{meta.away}</span>
+          {result && <span className="sb-score">{result.awayScore}</span>}
           {winner === OUTCOME_AWAY && <span className="sb-tag">Win</span>}
         </div>
+        {decided && (
+          <div className="sb-decided" style={{ margin: "0.4rem 0 0" }}>
+            {decided}
+          </div>
+        )}
         {winner === OUTCOME_DRAW && (
           <div className="sb-draw" style={{ margin: "0.4rem 0 0" }}>
             Draw
@@ -165,7 +176,7 @@ function OracleBadge() {
         </span>
         <span className="oracle-badge-sub">
           A Merkle proof of the final score was checked on-chain by{" "}
-          <code>Txoracle::validate_stat</code> — the program records the outcome
+          <code>Txoracle::validate_stat_v2</code> — the program records the outcome
           only if the oracle agrees, never on our word.
         </span>
       </span>
@@ -402,14 +413,6 @@ export default function MarketDetailPage({
       <TrustRail />
 
       {error && <div className="notice notice-error">{error}</div>}
-
-      {status === "review" && (
-        <div className="notice notice-warn">
-          This match went to a penalty shootout, which the automatic result
-          feed can&apos;t decide on its own. The market is under review —
-          settlement is paused until it&apos;s resolved.
-        </div>
-      )}
 
       {status === "open" && (
         <div className="panel">

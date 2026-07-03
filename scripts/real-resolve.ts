@@ -1,6 +1,7 @@
-// First genuine oracle-verified settlement: resolve a real market using a real
-// TxLINE Merkle proof (not the test bypass). Reads scripts/proof-<fixture>.json
-// produced by fetch-proof.ts. Run:
+// Genuine oracle-verified settlement: resolve a real market using a real TxLINE
+// V2 Merkle proof (not the test bypass). Reads scripts/proof-<fixture>.json
+// produced by fetch-proof.ts and calls resolve_match_v2, which CPIs into
+// Txoracle::validate_stat_v2. Run:
 //   NODE_OPTIONS="--dns-result-order=ipv4first" \
 //     ANCHOR_PROVIDER_URL="$HELIUS_RPC_URL" ANCHOR_WALLET=~/.config/solana/id.json \
 //     yarn ts-mocha -p ./tsconfig.json -t 100000000 scripts/real-resolve.ts
@@ -20,10 +21,19 @@ const BN: any = (BNmod as any).default ?? BNmod;
 const TXORACLE = new PublicKey("6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J");
 const FIXTURE = Number(process.env.FIXTURE_ID || "18179759");
 const STAKE = new BN(0.01 * LAMPORTS_PER_SOL);
-const OUTCOME_HOME_WIN = 0;
+const KNOCKOUT = process.env.KNOCKOUT === "1" || process.env.KNOCKOUT === "true";
 
-describe("real oracle-verified resolve (devnet)", () => {
-  it("resolves a market through the real Txoracle validate_stat CPI", async function () {
+const OUTCOME_HOME_WIN = 0;
+const OUTCOME_AWAY_WIN = 1;
+const OUTCOME_DRAW = 2;
+
+const KEY_HOME_GOALS = 1;
+const KEY_AWAY_GOALS = 2;
+const KEY_HOME_PE = 6001;
+const KEY_AWAY_PE = 6002;
+
+describe("real oracle-verified resolve (devnet, V2)", () => {
+  it("resolves a market through the real Txoracle validate_stat_v2 CPI", async function () {
     this.timeout(100000000);
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
@@ -35,7 +45,7 @@ describe("real oracle-verified resolve (devnet)", () => {
     const programId = program.programId;
     const sv = JSON.parse(fs.readFileSync(`scripts/proof-${FIXTURE}.json`, "utf-8"));
 
-    // devnet-hardened send; preflight ON so a validate_stat rejection shows logs.
+    // devnet-hardened send; preflight ON so a validate_stat_v2 rejection shows logs.
     const rawSAC = provider.sendAndConfirm.bind(provider);
     (provider as any).sendAndConfirm = async (tx: any, s?: any, o?: any) => {
       const bh = await provider.connection.getLatestBlockhash("finalized");
@@ -68,7 +78,7 @@ describe("real oracle-verified resolve (devnet)", () => {
     const existing = await provider.connection.getAccountInfo(market);
     if (!existing) {
       const sig = await program.methods
-        .initMarket(new BN(FIXTURE), STAKE, true) // knockout fixture
+        .initMarket(new BN(FIXTURE), STAKE, KNOCKOUT)
         .accountsPartial({
           authority: owner.publicKey,
           market,
@@ -84,8 +94,9 @@ describe("real oracle-verified resolve (devnet)", () => {
       if (m.resolved) return;
     }
 
-    // daily_scores_roots PDA for the proof's own day
-    const epochDay = Math.floor(Number(sv.ts) / 86_400_000);
+    // ts + daily_scores_roots PDA epoch-day both come from the batch min timestamp.
+    const targetTs = Number(sv.summary.updateStats.minTimestamp);
+    const epochDay = Math.floor(targetTs / 86_400_000);
     const dayLe = Buffer.alloc(2);
     dayLe.writeUInt16LE(epochDay);
     const dailyPda = PublicKey.findProgramAddressSync(
@@ -107,35 +118,57 @@ describe("real oracle-verified resolve (devnet)", () => {
       },
       eventsSubTreeRoot: sv.summary.eventStatsSubTreeRoot,
     };
-    const statA = {
-      statToProve: sv.statToProve,
-      eventStatRoot: sv.eventStatRoot,
-      statProof: sv.statProof.map(node),
-    };
-    const statB = {
-      statToProve: sv.statToProve2,
-      eventStatRoot: sv.eventStatRoot,
-      statProof: sv.statProof2.map(node),
-    };
 
-    console.log(
-      `Proving HOME WIN: home(key1)=${sv.statToProve.value} - away(key2)=${sv.statToProve2.value} > 0`,
-    );
+    // V2 stats array: pair each proven stat with its proof branch, in the exact
+    // key order the on-chain program pins (0=home goals, 1=away goals,
+    // 2=home PE, 3=away PE).
+    const stats = sv.statsToProve.map((stat: any, i: number) => ({
+      stat: { key: stat.key, value: stat.value, period: stat.period },
+      statProof: sv.statProofs[i].map(node),
+    }));
+
+    const byKey = (k: number) => stats.find((s: any) => s.stat.key === k);
+    const home = byKey(KEY_HOME_GOALS).stat.value;
+    const away = byKey(KEY_AWAY_GOALS).stat.value;
+
+    // Determine the claimed outcome from the proven values.
+    let claimedOutcome: number;
+    const isShootout = stats.length === 4 && !!byKey(KEY_HOME_PE) && !!byKey(KEY_AWAY_PE);
+    if (isShootout) {
+      const homePE = byKey(KEY_HOME_PE).stat.value;
+      const awayPE = byKey(KEY_AWAY_PE).stat.value;
+      claimedOutcome = homePE > awayPE ? OUTCOME_HOME_WIN : OUTCOME_AWAY_WIN;
+      console.log(
+        `Shootout: level ${home}-${away} after ET, PE ${homePE}-${awayPE} -> ` +
+          `${claimedOutcome === OUTCOME_HOME_WIN ? "HOME" : "AWAY"} WIN`,
+      );
+    } else {
+      claimedOutcome =
+        home > away
+          ? OUTCOME_HOME_WIN
+          : home < away
+          ? OUTCOME_AWAY_WIN
+          : OUTCOME_DRAW;
+      console.log(
+        `Regulation/ET: ${home}-${away} -> ` +
+          `${["HOME", "AWAY", "DRAW"][claimedOutcome]} outcome`,
+      );
+    }
+
     const sig = await program.methods
-      .resolveMatch(
-        OUTCOME_HOME_WIN,
-        new BN(sv.ts),
+      .resolveMatchV2(
+        claimedOutcome,
+        new BN(targetTs),
         fixtureSummary,
         sv.subTreeProof.map(node),
         sv.mainTreeProof.map(node),
-        { threshold: 0, comparison: { greaterThan: {} } },
-        statA,
-        statB,
-        { subtract: {} },
+        sv.eventStatRoot,
+        stats,
       )
-      // Two-stat validate_stat (home−away) can exceed the 200k default CU limit.
+      // V2 multi-stat verification can exceed the 200k default CU limit; TxLINE's
+      // own examples use 1.4M.
       .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
       ])
       .accountsPartial({
         authority: owner.publicKey,
@@ -145,9 +178,12 @@ describe("real oracle-verified resolve (devnet)", () => {
       })
       .signers([owner])
       .rpc({ commitment: "confirmed", skipPreflight: false });
-    console.log("resolve_match sig:", sig);
+    console.log("resolve_match_v2 sig:", sig);
 
     const m: any = await (program.account as any).market.fetch(market);
-    console.log("RESOLVED:", m.resolved, "| outcome:", m.outcome, "(0=HOME_WIN)");
+    console.log(
+      "RESOLVED:", m.resolved, "| outcome:", m.outcome,
+      "(0=HOME_WIN,1=AWAY_WIN,2=DRAW)",
+    );
   });
 });

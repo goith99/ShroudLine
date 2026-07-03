@@ -18,12 +18,11 @@ import {
   OUTCOME_HOME,
   STATUS_LABEL,
 } from "@/lib/shroudline";
-import { fixtureMeta } from "@/lib/fixtures";
+import { fixtureMeta, fixtureResult, resultDecidedLabel } from "@/lib/fixtures";
 
 const STATUS_ORDER: Record<MarketStatus, number> = {
   open: 0,
-  review: 1,
-  resolved: 2,
+  resolved: 1,
 };
 
 function Scoreboard({ account }: { account: MarketAccount }) {
@@ -32,6 +31,10 @@ function Scoreboard({ account }: { account: MarketAccount }) {
     return <div className="sb-single">{marketTitle(account)}</div>;
   }
   const winner = account.resolved ? account.outcome : null;
+  const result = account.resolved
+    ? fixtureResult(account.fixtureId.toString())
+    : undefined;
+  const decided = result ? resultDecidedLabel(result) : undefined;
   return (
     <>
       <div className="sb-teams">
@@ -45,6 +48,7 @@ function Scoreboard({ account }: { account: MarketAccount }) {
           }`}
         >
           <span className="sb-name">{meta.home}</span>
+          {result && <span className="sb-score">{result.homeScore}</span>}
           {winner === OUTCOME_HOME && <span className="sb-tag">Win</span>}
         </div>
         <div
@@ -57,9 +61,11 @@ function Scoreboard({ account }: { account: MarketAccount }) {
           }`}
         >
           <span className="sb-name">{meta.away}</span>
+          {result && <span className="sb-score">{result.awayScore}</span>}
           {winner === OUTCOME_AWAY && <span className="sb-tag">Win</span>}
         </div>
       </div>
+      {decided && <div className="sb-decided">{decided}</div>}
       {winner === OUTCOME_DRAW && <div className="sb-draw">Draw</div>}
     </>
   );
@@ -155,7 +161,7 @@ export default function MarketsPage() {
                 </strong>
               </span>
               {status === "settled" && (
-                <span className="verify-tag" title="Outcome proven on-chain by Txoracle::validate_stat">
+                <span className="verify-tag" title="Outcome proven on-chain by Txoracle::validate_stat_v2">
                   ⛓ TxLINE verified
                 </span>
               )}

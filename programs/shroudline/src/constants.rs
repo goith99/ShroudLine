@@ -31,5 +31,22 @@ pub const OUTCOME_UNRESOLVED: u8 = 255;
 // Mainnet: 9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA
 pub const TXORACLE_PROGRAM_ID: Pubkey = pubkey!("6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J");
 
-// Anchor instruction discriminator for Txoracle's `validate_stat` (= sha256("global:validate_stat")[..8]).
-pub const VALIDATE_STAT_DISCRIMINATOR: [u8; 8] = [107, 197, 232, 90, 191, 136, 105, 185];
+// Anchor instruction discriminator for Txoracle's `validate_stat_v2`
+// (= sha256("global:validate_stat_v2")[..8]). The N-stat V2 entrypoint; the
+// single-/two-stat V1 `validate_stat` path has been retired.
+pub const VALIDATE_STAT_V2_DISCRIMINATOR: [u8; 8] = [208, 215, 194, 214, 241, 71, 246, 178];
+
+// ---- TxLINE score stat keys (base key + period offset) ----
+// key = base (1/2 = home/away goals) + period offset. Period 0 (no offset) is the
+// full-game total: it INCLUDES extra time but, by football convention, EXCLUDES
+// penalty-shootout goals — so key1 == key2 exactly characterises "level after ET",
+// i.e. the match went to a shootout.
+pub const KEY_HOME_GOALS: u32 = 1;
+pub const KEY_AWAY_GOALS: u32 = 2;
+// Penalty-shootout (PE) goals live at the +6000 period offset. NOTE: the +6000
+// slot is inferred from the feed's numbering (ET2=+5000, ETTotal=+7000 are
+// confirmed) but is NOT yet empirically verified against a finished shootout
+// fixture — no FPE fixture has been available. Confirm against a real FPE
+// fixture before relying on shootout resolution in production.
+pub const KEY_HOME_PE_GOALS: u32 = 6001;
+pub const KEY_AWAY_PE_GOALS: u32 = 6002;

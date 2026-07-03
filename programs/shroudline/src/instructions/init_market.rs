@@ -44,7 +44,6 @@ pub fn init_market_handler(
     market.resolved = false;
     market.outcome = OUTCOME_UNRESOLVED;
     market.is_knockout = is_knockout;
-    market.needs_manual_review = false;
     market.bump = ctx.bumps.market;
     market.vault_bump = ctx.bumps.vault;
 

@@ -31,18 +31,18 @@ import { expect } from "chai";
 // End-to-end test for the Private Prediction Settlement flow:
 //
 //   init_market
-//     -> submit_prediction (encrypted under Arcium MXE, SOL staked)   x2 users
-//     -> resolve_match      (real Txoracle validate_stat CPI probe)
+//     -> submit_prediction  (encrypted under Arcium MXE, SOL staked)   x2 users
+//     -> resolve_match_v2   (real Txoracle validate_stat_v2 CPI probe)
 //     -> resolve_match_test (feature-gated bypass, sets the outcome)
 //     -> settle_prediction  (correct  => 2x payout from vault)
 //     -> settle_prediction  (incorrect => no payout)
 //
 // Notes / why it's shaped this way:
-//   * `resolve_match` (the real path) can never return `true` from
-//     manufactured proof data — validate_stat verifies against the real
+//   * `resolve_match_v2` (the real path) can never return `true` from
+//     manufactured proof data — validate_stat_v2 verifies against the real
 //     on-chain Merkle root, and we have no subscribe token to fetch a genuine
 //     proof yet. So the real path is exercised as a CPI-dispatch *probe*: we
-//     assert it reaches validate_stat and is rejected at the oracle's own
+//     assert it reaches validate_stat_v2 and is rejected at the oracle's own
 //     data-consistency checks (this is what retired the CPI risk). To actually
 //     flip `market.resolved` and exercise settlement we use the feature-gated
 //     `resolve_match_test` bypass (compiled only with `--features test-resolve`,
@@ -198,7 +198,7 @@ describe("Shroudline", () => {
 
   // ----- resolve_match: real Txoracle CPI probe --------------------------
 
-  it("probes the real resolve_match CPI (dispatches into validate_stat)", async function () {
+  it("probes the real resolve_match_v2 CPI (dispatches into validate_stat_v2)", async function () {
     const daily = await findDailyScores(provider.connection);
     const oracle = await provider.connection.getAccountInfo(TXORACLE_PROGRAM_ID);
     if (!daily || !oracle) {
@@ -238,26 +238,25 @@ describe("Shroudline", () => {
       },
       eventsSubTreeRoot: zero32,
     };
-    const predicate = { threshold: 0, comparison: { greaterThan: {} } };
-    const statA = {
-      statToProve: { key: 1, value: 1, period: 0 },
-      eventStatRoot: zero32,
-      statProof: [],
-    };
+    // Two full-game goal stats keyed 1/2 so our on-chain key-pinning guard
+    // passes and the call reaches the oracle (we want the ORACLE to reject the
+    // fabricated proof, not our own layout check). Home 1 - away 0 => HOME claim.
+    const stats = [
+      { stat: { key: 1, value: 1, period: 0 }, statProof: [] },
+      { stat: { key: 2, value: 0, period: 0 }, statProof: [] },
+    ];
 
     let threw = false;
     try {
       await program.methods
-        .resolveMatch(
+        .resolveMatchV2(
           OUTCOME_HOME_WIN,
           ts,
           fixtureSummary,
           [],
           [],
-          predicate,
-          statA,
-          null,
-          null,
+          zero32,
+          stats,
         )
         .accountsPartial({
           authority: owner.publicKey,
@@ -272,15 +271,15 @@ describe("Shroudline", () => {
     } catch (e: any) {
       threw = true;
       const logs = (e.logs || []).join("\n");
-      // Proof of dispatch: the CPI entered validate_stat's own logic before the
-      // data-consistency rejection (see cpi-verified findings).
+      // Proof of dispatch: the CPI entered validate_stat_v2's own logic before
+      // the data-consistency rejection (see cpi-verified findings).
       console.log(
-        "resolve_match rejected as expected. First line:",
+        "resolve_match_v2 rejected as expected. First line:",
         (e.message || "").split("\n")[0],
       );
       expect(logs).to.match(/ValidateStat|validate_stat|6pW64g/);
     }
-    expect(threw, "resolve_match must reject fabricated proof data").to.equal(
+    expect(threw, "resolve_match_v2 must reject fabricated proof data").to.equal(
       true,
     );
 

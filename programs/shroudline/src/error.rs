@@ -18,6 +18,8 @@ pub enum ErrorCode {
     NotResolved,
     #[msg("Claimed outcome is not a valid outcome value")]
     InvalidOutcome,
+    #[msg("Stats array does not match the required key layout for the claimed outcome")]
+    InvalidStatLayout,
     #[msg("CPI target is not the expected Txoracle program")]
     InvalidOracleProgram,
     #[msg("Txoracle returned no data from validate_stat")]

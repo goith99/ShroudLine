@@ -20,14 +20,10 @@ pub struct Market {
     pub outcome: u8,
     /// True if this fixture is a knockout-stage match (can go to extra time /
     /// penalties). Set at init by the (off-chain) creator from the competition
-    /// round; group-stage matches set this false.
+    /// round; group-stage matches set this false. A knockout can be resolved
+    /// across regulation, extra-time and penalty-shootout outcomes via the
+    /// `validate_stat_v2` path; a group match additionally allows a DRAW.
     pub is_knockout: bool,
-    /// Set true when the oracle confirms a full-time+extra-time DRAW on a
-    /// knockout fixture. Goal totals (stat keys 1/2, which include ET) can't
-    /// identify a penalty-shootout winner, so the market is flagged for manual
-    /// review instead of silently resolving as a draw. Settlement stays blocked
-    /// (resolved remains false) while this is true.
-    pub needs_manual_review: bool,
     /// Bump for the Market PDA.
     pub bump: u8,
     /// Bump for the associated Vault PDA.

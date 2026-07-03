@@ -206,6 +206,34 @@ a.card:hover {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text);
+  /* push the score + Win tag to the right edge of the row */
+  margin-right: auto;
+}
+
+.sb-score {
+  font-family: var(--font-score);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-row.sb-dim .sb-score {
+  color: var(--faint);
+}
+
+.sb-row.sb-win .sb-score {
+  color: var(--reveal);
+}
+
+/* "AET" / "PEN (4–3)" note under the two team rows */
+.sb-decided {
+  margin: 0.3rem 1.1rem 0;
+  font-family: var(--font-score);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--faint);
 }
 
 .sb-row.sb-dim .sb-name {

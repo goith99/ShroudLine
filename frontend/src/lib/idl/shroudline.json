@@ -261,19 +261,21 @@
       "args": []
     },
     {
-      "name": "resolve_match",
+      "name": "resolve_match_v2",
       "docs": [
-        "Resolve the market by proving the outcome through a Txoracle `validate_stat` CPI."
+        "Resolve the market by proving the outcome through a Txoracle",
+        "`validate_stat_v2` CPI. Handles regulation, extra-time and",
+        "penalty-shootout outcomes (see `resolve_match_v2_handler`)."
       ],
       "discriminator": [
-        73,
-        0,
-        15,
-        197,
-        178,
-        47,
-        21,
-        193
+        198,
+        209,
+        10,
+        200,
+        250,
+        124,
+        200,
+        132
       ],
       "accounts": [
         {
@@ -339,37 +341,20 @@
           }
         },
         {
-          "name": "predicate",
+          "name": "event_stat_root",
           "type": {
-            "defined": {
-              "name": "TraderPredicate"
-            }
+            "array": [
+              "u8",
+              32
+            ]
           }
         },
         {
-          "name": "stat_a",
+          "name": "stats",
           "type": {
-            "defined": {
-              "name": "StatTerm"
-            }
-          }
-        },
-        {
-          "name": "stat_b",
-          "type": {
-            "option": {
+            "vec": {
               "defined": {
-                "name": "StatTerm"
-              }
-            }
-          }
-        },
-        {
-          "name": "op",
-          "type": {
-            "option": {
-              "defined": {
-                "name": "BinaryExpression"
+                "name": "StatLeaf"
               }
             }
           }
@@ -962,31 +947,36 @@
     },
     {
       "code": 6008,
+      "name": "InvalidStatLayout",
+      "msg": "Stats array does not match the required key layout for the claimed outcome"
+    },
+    {
+      "code": 6009,
       "name": "InvalidOracleProgram",
       "msg": "CPI target is not the expected Txoracle program"
     },
     {
-      "code": 6009,
+      "code": 6010,
       "name": "OracleNoReturnData",
       "msg": "Txoracle returned no data from validate_stat"
     },
     {
-      "code": 6010,
+      "code": 6011,
       "name": "OracleRejected",
       "msg": "Oracle rejected the claimed outcome (validate_stat returned false)"
     },
     {
-      "code": 6011,
+      "code": 6012,
       "name": "AlreadySettled",
       "msg": "Prediction has already been settled"
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "PredictionNotStored",
       "msg": "Encrypted prediction state has not been stored yet"
     },
     {
-      "code": 6013,
+      "code": 6014,
       "name": "InsufficientVault",
       "msg": "Vault has insufficient funds for payout"
     }
@@ -1038,20 +1028,6 @@
               "u8",
               64
             ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "BinaryExpression",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Add"
-          },
-          {
-            "name": "Subtract"
           }
         ]
       }
@@ -1264,23 +1240,6 @@
                 "name": "LeaderSelector"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Comparison",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "GreaterThan"
-          },
-          {
-            "name": "LessThan"
-          },
-          {
-            "name": "EqualTo"
           }
         ]
       }
@@ -1696,18 +1655,9 @@
             "docs": [
               "True if this fixture is a knockout-stage match (can go to extra time /",
               "penalties). Set at init by the (off-chain) creator from the competition",
-              "round; group-stage matches set this false."
-            ],
-            "type": "bool"
-          },
-          {
-            "name": "needs_manual_review",
-            "docs": [
-              "Set true when the oracle confirms a full-time+extra-time DRAW on a",
-              "knockout fixture. Goal totals (stat keys 1/2, which include ET) can't",
-              "identify a penalty-shootout winner, so the market is flagged for manual",
-              "review instead of silently resolving as a draw. Settlement stays blocked",
-              "(resolved remains false) while this is true."
+              "round; group-stage matches set this false. A knockout can be resolved",
+              "across regulation, extra-time and penalty-shootout outcomes via the",
+              "`validate_stat_v2` path; a group match additionally allows a DRAW."
             ],
             "type": "bool"
           },
@@ -2102,13 +2052,17 @@
     },
     {
       "name": "ScoreStat",
+      "docs": [
+        "A single provable key-value statistic — the leaf of the inner-most tree."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "key",
             "docs": [
-              "Stat key (e.g. 1 = home goals, 2 = away goals). See PROJECT_CONTEXT.md."
+              "Stat key (base + period offset), e.g. 1 = home full-game goals,",
+              "6001 = home penalty-shootout goals. See constants.rs."
             ],
             "type": "u32"
           },
@@ -2250,25 +2204,20 @@
       }
     },
     {
-      "name": "StatTerm",
+      "name": "StatLeaf",
+      "docs": [
+        "One stat to prove plus the Merkle branch that commits it. All leaves in a",
+        "`StatValidationInput` share the top-level `event_stat_root`."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "stat_to_prove",
+            "name": "stat",
             "type": {
               "defined": {
                 "name": "ScoreStat"
               }
-            }
-          },
-          {
-            "name": "event_stat_root",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
             }
           },
           {
@@ -2318,26 +2267,6 @@
           {
             "name": "timestamp",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "TraderPredicate",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "threshold",
-            "type": "i32"
-          },
-          {
-            "name": "comparison",
-            "type": {
-              "defined": {
-                "name": "Comparison"
-              }
-            }
           }
         ]
       }
