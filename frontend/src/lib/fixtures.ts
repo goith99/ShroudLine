@@ -24,6 +24,18 @@ export const FIXTURES: Record<string, FixtureMeta> = {
     kickoffUtc: "2026-07-01T20:00:00Z",
     stage: "World Cup 2026 — Round of 32",
   },
+  "18175918": {
+    home: "Argentina",
+    away: "Cape Verde",
+    kickoffUtc: "2026-07-03T22:00:00Z",
+    stage: "World Cup 2026 — Round of 16",
+  },
+  "18198205": {
+    home: "Portugal",
+    away: "Spain",
+    kickoffUtc: "2026-07-06T19:00:00Z",
+    stage: "World Cup 2026 — Round of 16",
+  },
 };
 
 export function fixtureMeta(fixtureId: string): FixtureMeta | undefined {

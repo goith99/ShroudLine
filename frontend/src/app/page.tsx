@@ -154,6 +154,11 @@ export default function MarketsPage() {
                   {meta ? formatKickoff(meta.kickoffUtc) : "at kickoff"}
                 </strong>
               </span>
+              {status === "settled" && (
+                <span className="verify-tag" title="Outcome proven on-chain by Txoracle::validate_stat">
+                  ⛓ TxLINE verified
+                </span>
+              )}
             </div>
           </Link>
         );

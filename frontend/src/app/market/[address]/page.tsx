@@ -113,6 +113,66 @@ function MatchBoard({ market }: { market: MarketAccount }) {
   );
 }
 
+/**
+ * The two trustless mechanisms, shown side by side so a viewer sees they are
+ * separate systems: Arcium MPC keeps the pick secret, TxLINE's oracle proves
+ * the result. Always visible on the detail page.
+ */
+function TrustRail() {
+  return (
+    <div className="trust-rail">
+      <div className="trust-chip trust-chip-encrypt">
+        <span className="trust-chip-icon" aria-hidden>
+          🔒
+        </span>
+        <span className="trust-chip-body">
+          <span className="trust-chip-title">Picks encrypted · Arcium</span>
+          <span className="trust-chip-sub">
+            Your prediction is sealed by Arcium MPC — nobody sees it until
+            settlement.
+          </span>
+        </span>
+      </div>
+      <div className="trust-chip trust-chip-verify">
+        <span className="trust-chip-icon" aria-hidden>
+          ⛓
+        </span>
+        <span className="trust-chip-body">
+          <span className="trust-chip-title">Result verified · TxLINE</span>
+          <span className="trust-chip-sub">
+            The final score is proven on-chain by TxLINE&apos;s oracle before
+            any market resolves.
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Prominent verification badge shown once a market is settled — makes clear the
+ * outcome came from TxLINE's oracle, not from us asserting it.
+ */
+function OracleBadge() {
+  return (
+    <div className="oracle-badge">
+      <span className="oracle-badge-icon" aria-hidden>
+        ⛓
+      </span>
+      <span className="oracle-badge-body">
+        <span className="oracle-badge-title">
+          Result verified via TxLINE on-chain oracle
+        </span>
+        <span className="oracle-badge-sub">
+          A Merkle proof of the final score was checked on-chain by{" "}
+          <code>Txoracle::validate_stat</code> — the program records the outcome
+          only if the oracle agrees, never on our word.
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function VeiledPick({
   stake,
   decrypting,
@@ -339,6 +399,8 @@ export default function MarketDetailPage({
         </div>
       </div>
 
+      <TrustRail />
+
       {error && <div className="notice notice-error">{error}</div>}
 
       {status === "review" && (
@@ -425,6 +487,7 @@ export default function MarketDetailPage({
       {status === "resolved" && (
         <div className="panel">
           <h2>Result · {outcomeLabel(market)}</h2>
+          <OracleBadge />
           {!wallet && (
             <p className="muted">
               Connect your wallet to check whether you have a pick to settle.

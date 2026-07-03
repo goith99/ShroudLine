@@ -523,6 +523,135 @@ a.card:hover {
   }
 }
 
+/* ---- trust rail: the two trustless mechanisms, side by side ---- */
+
+.trust-rail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin: 0.9rem 0 1rem;
+}
+
+.trust-chip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
+
+.trust-chip-icon {
+  font-size: 1rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.trust-chip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.trust-chip-title {
+  font-family: var(--font-score);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.trust-chip-sub {
+  font-size: 0.74rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.trust-chip-encrypt {
+  border-color: rgba(139, 147, 167, 0.28);
+}
+
+.trust-chip-verify {
+  border-color: rgba(96, 155, 114, 0.32);
+  background: var(--pitch-tint);
+}
+
+@media (max-width: 520px) {
+  .trust-rail {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- oracle verification badge (settled markets) ---- */
+
+.oracle-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: var(--pitch-tint);
+  border: 1px solid rgba(96, 155, 114, 0.4);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.oracle-badge-icon {
+  font-size: 1.15rem;
+  line-height: 1.2;
+  color: var(--pitch-bright);
+  flex-shrink: 0;
+}
+
+.oracle-badge-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.oracle-badge-title {
+  font-family: var(--font-score);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pitch-bright);
+}
+
+.oracle-badge-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.oracle-badge-sub code {
+  font-family: var(--font-score);
+  font-size: 0.9em;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  background: rgba(139, 147, 167, 0.14);
+  padding: 0.02rem 0.3rem;
+  border-radius: 3px;
+}
+
+/* compact verified tag on settled market cards (list) */
+.verify-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-score);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pitch-bright);
+  padding: 0.15rem 0.55rem;
+  border: 1px solid rgba(96, 155, 114, 0.32);
+  border-radius: 4px;
+  background: var(--pitch-tint);
+}
+
 /* ---- notices ---- */
 
 .notice {
