@@ -26,6 +26,7 @@
     "stream-browserify": "^3.0.0"
   },
   "devDependencies": {
+    "@types/bn.js": "^5.2.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
