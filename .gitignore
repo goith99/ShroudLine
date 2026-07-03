@@ -11,3 +11,15 @@ build
 encrypted-ixs/src/main.rs
 artifacts/
 .env
+PROJECT_CONTEXT.md
+ARCIUM_PREDEPLOY_CHECKLIST.md
+PRE_SUBMISSION_CHECKLIST.md
+.env.local
+*-keypair.json
+scripts/demo-market-authority-18179759.json
+*-authority-*.json
+*-keypair.json
+.env
+.env.local
+frontend/.env.local
+artifacts/

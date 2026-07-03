@@ -1,0 +1,22 @@
+diff --git a/node_modules/@arcium-hq/client/build/index.mjs b/node_modules/@arcium-hq/client/build/index.mjs
+index 5dd1f23..09a91aa 100644
+--- a/node_modules/@arcium-hq/client/build/index.mjs
++++ b/node_modules/@arcium-hq/client/build/index.mjs
+@@ -7,7 +7,7 @@ import { randomBytes as randomBytes$1 } from '@noble/hashes/utils';
+ import { twistedEdwards } from '@noble/curves/abstract/edwards';
+ import fs from 'fs';
+ import * as anchor from '@anchor-lang/core';
+-import anchor__default, { BorshCoder, convertIdlToCamelCase, Program } from '@anchor-lang/core';
++import { BorshCoder, convertIdlToCamelCase, Program } from '@anchor-lang/core';
+ import { AddressLookupTableProgram, PublicKey } from '@solana/web3.js';
+ 
+ /**
+@@ -16803,7 +16803,7 @@ function assertRawCircuitUploadLength(rawCircuitByteLength, declaredCircuitByteL
+     }
+ }
+ 
+-const { BN } = anchor__default;
++const { BN } = anchor.default ?? anchor;
+ /**
+  * Fetch and decode the mempool account info for any mempool account size.
+  * @param provider - Anchor provider to use for fetching accounts.
