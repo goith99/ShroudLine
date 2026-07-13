@@ -2,7 +2,10 @@
   "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "start": "node worker/index.mjs",
+    "worker": "node worker/index.mjs",
+    "worker:dry": "DRY_RUN=1 node worker/index.mjs"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2",

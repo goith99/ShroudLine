@@ -33,7 +33,9 @@ import {
   STATUS_LABEL,
   vaultPda,
 } from "@/lib/shroudline";
-import { fixtureMeta, fixtureResult, resultDecidedLabel } from "@/lib/fixtures";
+import { FixtureMeta, resultDecidedLabel } from "@/lib/fixtures";
+import { useFixtureMeta } from "@/lib/useFixtureMeta";
+import TransactionReceipt from "@/components/TransactionReceipt";
 
 type Busy =
   | null
@@ -64,8 +66,29 @@ function friendlyError(e: unknown): string {
   return msg.length > 300 ? msg.slice(0, 300) + "…" : msg;
 }
 
-function MatchBoard({ market }: { market: MarketAccount }) {
-  const meta = fixtureMeta(market.fixtureId.toString());
+function MatchBoard({
+  market,
+  meta,
+  loading,
+}: {
+  market: MarketAccount;
+  meta: FixtureMeta | null;
+  loading: boolean;
+}) {
+  if (loading && !meta) {
+    return (
+      <div className="match-board" aria-busy="true">
+        <div className="sb-row">
+          <span className="sb-name sb-skeleton">Loading match…</span>
+        </div>
+        <div className="sb-row">
+          <span className="sb-name sb-skeleton" aria-hidden>
+            &nbsp;
+          </span>
+        </div>
+      </div>
+    );
+  }
   if (!meta) {
     return (
       <div className="match-board">
@@ -76,9 +99,7 @@ function MatchBoard({ market }: { market: MarketAccount }) {
     );
   }
   const winner = market.resolved ? market.outcome : null;
-  const result = market.resolved
-    ? fixtureResult(market.fixtureId.toString())
-    : undefined;
+  const result = market.resolved ? meta.result : undefined;
   const decided = result ? resultDecidedLabel(result) : undefined;
   return (
     <>
@@ -230,6 +251,8 @@ export default function MarketDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [justSettled, setJustSettled] = useState(false);
   const [justSubmitted, setJustSubmitted] = useState(false);
+  const [submitTxSig, setSubmitTxSig] = useState<string | null>(null);
+  const [settleTxSig, setSettleTxSig] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!marketKey) return;
@@ -255,9 +278,17 @@ export default function MarketDetailPage({
     void load();
   }, [load]);
 
+  // Fixture names/score: static dict first, then /api/fixture-meta, then generic
+  // fallback. `market` may be undefined on first render — the hook re-runs with
+  // the real id once it loads (empty id is a no-op, never fetches).
+  const { meta, loading: metaLoading } = useFixtureMeta(
+    market?.fixtureId?.toString() ?? "",
+  );
+
   const submit = async () => {
     if (!marketKey || !market || !wallet || selected === null) return;
     setError(null);
+    setSubmitTxSig(null);
     setBusy("encrypting");
     try {
       const { program, provider } = getProgram(
@@ -277,7 +308,7 @@ export default function MarketDetailPage({
       const computationOffset = new BN(Array.from(randomBytes(8)));
 
       setBusy("sending");
-      await program.methods
+      const submitSig = await program.methods
         .submitPrediction(
           computationOffset,
           Array.from(ciphertext[0]),
@@ -292,6 +323,7 @@ export default function MarketDetailPage({
           ...arciumAccounts(computationOffset, "store_prediction"),
         })
         .rpc({ skipPreflight: true, commitment: "confirmed" });
+      setSubmitTxSig(submitSig);
 
       setBusy("confirming");
       await awaitComputationFinalization(
@@ -312,6 +344,7 @@ export default function MarketDetailPage({
   const settle = async () => {
     if (!marketKey || !market || !wallet) return;
     setError(null);
+    setSettleTxSig(null);
     setBusy("settling");
     try {
       const { program, provider } = getProgram(
@@ -319,7 +352,7 @@ export default function MarketDetailPage({
         wallet as unknown as Wallet,
       );
       const computationOffset = new BN(Array.from(randomBytes(8)));
-      await program.methods
+      const settleSig = await program.methods
         .settlePrediction(computationOffset)
         .accountsPartial({
           payer: wallet.publicKey,
@@ -330,6 +363,7 @@ export default function MarketDetailPage({
           ...arciumAccounts(computationOffset, "check_prediction"),
         })
         .rpc({ skipPreflight: true, commitment: "confirmed" });
+      setSettleTxSig(settleSig);
 
       setBusy("settling-confirm");
       await awaitComputationFinalization(
@@ -372,9 +406,17 @@ export default function MarketDetailPage({
 
   const status = marketStatus(market); // drives available actions
   const shown = displayStatus(market); // what the user reads
-  const meta = fixtureMeta(market.fixtureId.toString());
   const stake = market.stakeAmount;
   const payout = stake.muln(2);
+  // Result heading uses the merged fixture meta's names when available; falls
+  // back to the generic outcomeLabel otherwise.
+  const resultHeading = meta
+    ? market.outcome === OUTCOME_HOME
+      ? `${meta.home} won`
+      : market.outcome === OUTCOME_AWAY
+        ? `${meta.away} won`
+        : "Draw"
+    : outcomeLabel(market);
 
   return (
     <>
@@ -387,7 +429,7 @@ export default function MarketDetailPage({
           <span className="sb-stage">{meta ? meta.stage : "Exhibition"}</span>
           <span className={`pill pill-${shown}`}>{STATUS_LABEL[shown]}</span>
         </div>
-        <MatchBoard market={market} />
+        <MatchBoard market={market} meta={meta} loading={metaLoading} />
         <div className="sb-meta">
           <span>
             Pool <strong>{formatSol(market.totalStaked)}</strong>
@@ -432,6 +474,12 @@ export default function MarketDetailPage({
                     : "Encrypted on-chain. It stays veiled until the match is settled."
                 }
               />
+              {submitTxSig && (
+                <TransactionReceipt
+                  signature={submitTxSig}
+                  label="Pick stored on-chain"
+                />
+              )}
               <p className="muted" style={{ fontSize: "0.85rem", marginBottom: 0 }}>
                 Come back after the result is in to settle.
               </p>
@@ -489,7 +537,7 @@ export default function MarketDetailPage({
 
       {status === "resolved" && (
         <div className="panel">
-          <h2>Result · {outcomeLabel(market)}</h2>
+          <h2>Result · {resultHeading}</h2>
           <OracleBadge />
           {!wallet && (
             <p className="muted">
@@ -516,6 +564,14 @@ export default function MarketDetailPage({
                   ? `${justSettled ? "You've been paid" : "You were paid"} ${formatSol(payout)}.`
                   : "Your pick didn't match the result — no payout."}
               </span>
+              {settleTxSig && (
+                <div style={{ marginTop: "0.65rem" }}>
+                  <TransactionReceipt
+                    signature={settleTxSig}
+                    label="Settlement tx"
+                  />
+                </div>
+              )}
             </div>
           )}
           {wallet && prediction && !prediction.settled && (

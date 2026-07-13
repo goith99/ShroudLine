@@ -55,48 +55,70 @@ export const FIXTURES: Record<string, FixtureMeta> = {
     away: "Cape Verde",
     kickoffUtc: "2026-07-03T22:00:00Z",
     stage: "World Cup 2026 — Round of 16",
+    result: { homeScore: 3, awayScore: 2, decidedBy: "AET" },
   },
   "18179549": {
     home: "Colombia",
     away: "Ghana",
     kickoffUtc: "2026-07-04T01:30:00Z",
     stage: "World Cup 2026 — Round of 16",
+    result: { homeScore: 1, awayScore: 0 },
   },
   "18185036": {
     home: "Canada",
     away: "Morocco",
     kickoffUtc: "2026-07-04T17:00:00Z",
     stage: "World Cup 2026 — Round of 16",
+    result: { homeScore: 0, awayScore: 3 },
   },
   "18188721": {
     home: "Paraguay",
     away: "France",
     kickoffUtc: "2026-07-04T21:00:00Z",
     stage: "World Cup 2026 — Round of 16",
+    result: { homeScore: 0, awayScore: 1 },
   },
   "18187298": {
     home: "Brazil",
     away: "Norway",
     kickoffUtc: "2026-07-05T20:00:00Z",
     stage: "World Cup 2026 — Round of 16",
+    result: { homeScore: 1, awayScore: 2 },
   },
   "18192996": {
     home: "Mexico",
     away: "England",
     kickoffUtc: "2026-07-06T00:00:00Z",
     stage: "World Cup 2026 — Round of 16",
+    result: { homeScore: 2, awayScore: 3 },
   },
   "18198205": {
     home: "Portugal",
     away: "Spain",
     kickoffUtc: "2026-07-06T19:00:00Z",
     stage: "World Cup 2026 — Round of 16",
+    result: { homeScore: 0, awayScore: 1 },
   },
   "18193785": {
     home: "USA",
     away: "Belgium",
     kickoffUtc: "2026-07-07T00:00:00Z",
     stage: "World Cup 2026 — Round of 16",
+    result: { homeScore: 1, awayScore: 4 },
+  },
+
+  // ---- Semifinals (upcoming, not yet played — no result) ----
+  "18237038": {
+    home: "France",
+    away: "Spain",
+    kickoffUtc: "2026-07-14T19:00:00Z",
+    stage: "World Cup 2026 — Semifinal",
+  },
+  "18241006": {
+    home: "England",
+    away: "Argentina",
+    kickoffUtc: "2026-07-15T19:00:00Z",
+    stage: "World Cup 2026 — Semifinal",
   },
 };
 

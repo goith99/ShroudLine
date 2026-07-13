@@ -1,24 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Oswald } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import WalletProviders from "@/components/WalletProviders";
 import Header from "@/components/Header";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Body copy — neutral, highly legible, gets out of the way.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Data face — stakes, pool totals, tx signatures, ciphertext glyphs.
+// Tabular figures by default, so numbers don't jitter as they update.
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jbmono",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
-// Scoreboard display face — team names, results, and big numbers only.
-const oswald = Oswald({
-  variable: "--font-display",
+// Display face — team names, page headings, the wordmark. Geometric
+// character with a bit of edge; deliberately not another rounded
+// system-font clone.
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -35,12 +41,28 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}
     >
       <body>
         <WalletProviders>
           <Header />
           <main className="container">{children}</main>
+          <div className="powered-by">
+            <a
+              href="https://txodds.net"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Powered by TxLINE
+            </a>
+            <a
+              href="https://www.arcium.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Confidential compute by Arcium
+            </a>
+          </div>
           <footer className="site-footer">
             Picks are encrypted in your browser and stay veiled until
             settlement — nobody can see what you predicted.
