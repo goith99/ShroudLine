@@ -18,8 +18,5 @@ PRE_SUBMISSION_CHECKLIST.md
 *-keypair.json
 scripts/demo-market-authority-18179759.json
 *-authority-*.json
-*-keypair.json
-.env
-.env.local
 frontend/.env.local
-artifacts/
+worker/existing-authorities*.json
