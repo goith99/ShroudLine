@@ -60,31 +60,45 @@ numbering. TxLINE has also indicated an **upcoming fix (a dedicated
 `END` / `period=19` marker on `game_finalised` records)** that may resolve the
 penalty-shootout stat-selection cleanly — worth revisiting once live.
 
-## Demo markets & schedule
+## Automated markets & schedule
 
-The devnet demo tracks the **full remaining World Cup schedule**, not a
-hand-picked few. `scripts/sync-schedule.mjs` reads TxLINE's official fixtures
-snapshot (competition 72 — the feed behind `/documentation/scores/schedule`)
-and creates a market for every remaining (not-yet-kicked-off) confirmed fixture
-that doesn't already have one:
+Market creation and resolution run **automatically** — no scripts to re-run by
+hand. A continuously-running **worker** (`worker/index.mjs`, deployed on
+**Railway**) drives the full remaining World Cup schedule via two adaptive loops
+against the live devnet program:
 
-```bash
-DRY_RUN=1 ANCHOR_PROVIDER_URL="$HELIUS_RPC_URL" node scripts/sync-schedule.mjs  # preview
-ANCHOR_PROVIDER_URL="$HELIUS_RPC_URL" node scripts/sync-schedule.mjs            # create
-```
+- **Market creation** — it discovers new World Cup fixtures from TxLINE's
+  official schedule (competition 72) and creates a market for each newly
+  confirmed fixture before kickoff, skipping any that already exist.
+- **Resolution** — after a match's expected end time it polls the TxLINE feed
+  adaptively (fast near the final whistle, backing off otherwise) and, once the
+  match finalises, resolves the market through the same oracle-verified path
+  described above (`resolve_match_v2` → `Txoracle::validate_stat_v2`) — so
+  results are never self-reported.
 
-It is **idempotent and meant to be re-run periodically** before the deadline:
-as later rounds are confirmed in the feed, re-running it adds only the new
-markets (existing ones are left untouched) and prints ready-to-paste
-`fixtures.ts` rows. It is *not* a one-time batch — the World Cup bracket fills
-in over time, so re-run it whenever new fixtures are confirmed.
+(See `worker/README.md` for its configuration and deployment. The one-shot
+`scripts/sync-schedule.mjs` still exists for manual/local use, but the worker
+supersedes the old "re-run it periodically before the deadline" workflow.)
 
-Team names, kickoff times, stage, and the **final score** of settled matches
-live in `frontend/src/lib/fixtures.ts` (the program stores only the outcome
-*direction*, never the numeric score). Settled market cards show the real
-scoreline — e.g. `MEXICO 2 — 0 ECUADOR` — with an `AET` chip for extra-time
-results and a `PEN (x–y)` chip for shootout wins. After a match settles, add its
-`result` to `fixtures.ts`.
+Team names, kickoff times, stage, and the **final score** of settled matches are
+still curated in `frontend/src/lib/fixtures.ts` (the program stores only the
+outcome *direction*, never the numeric score). New markets no longer need a
+manual edit to display, though: when a fixture isn't in `fixtures.ts` yet, the
+frontend falls back to a live server-side lookup (`frontend/src/app/api/fixture-meta`)
+that pulls team names — and the final score once available — straight from
+TxLINE, shortly after the market is created. The hand-maintained `fixtures.ts`
+entries are now for **long-term curation and precise `AET` / `PEN (x–y)`
+labeling**, not for basic display. Settled market cards show the real scoreline —
+e.g. `MEXICO 2 — 0 ECUADOR` — with an `AET` chip for extra-time results and a
+`PEN (x–y)` chip for shootout wins.
+
+## Frontend
+
+The web app (`frontend/`) encrypts each pick **in the browser** before it is
+submitted — the plaintext never leaves the device — and presents markets in a
+bright, World Cup–inspired match-day theme. Its footer credits **Powered by
+TxLINE** (<https://txodds.net>) and **Confidential compute by Arcium**
+(<https://www.arcium.com>).
 
 ## Quickstart
 
@@ -99,6 +113,7 @@ arcium test
 |------|---------|
 | `programs/shroudline/` | Anchor program: queues computations, handles callbacks |
 | `encrypted-ixs/` | Arcis confidential instructions |
+| `worker/` | Railway worker: auto-creates & resolves markets ([details](worker/README.md)) |
 | `tests/shroudline.ts` | TypeScript integration tests |
 | `Arcium.toml` | Localnet and cluster configuration |
 
