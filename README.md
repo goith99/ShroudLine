@@ -60,6 +60,11 @@ numbering. TxLINE has also indicated an **upcoming fix (a dedicated
 `END` / `period=19` marker on `game_finalised` records)** that may resolve the
 penalty-shootout stat-selection cleanly — worth revisiting once live.
 
+TxLINE's Txoracle also exposes a newer `validate_stat_v3` (Merkle multiproof)
+alongside the v2 path used here — benchmarked and not adopted: it is a net size
+increase on the 2-stat path ShroudLine settles with, and only pays off at 3+
+leaves.
+
 ## Automated markets & schedule
 
 Market creation and resolution run **automatically** — no scripts to re-run by
