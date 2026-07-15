@@ -81,8 +81,12 @@ const MARKET_CREATION_INTERVAL_MS = 10 * 60 * 1000; // LOOP A cadence: 10 minute
 const SHORT_POLL_INTERVAL_MS = 25_000;              // LOOP B base tick / "match likely just ended" cadence
 const LONG_POLL_INTERVAL_MS = 300_000;              // LOOP B backoff cadence once a match is long overdue
 
-const RESOLVE_MIN_AGE_MS = 80 * 60 * 1000;          // don't attempt before kickoff + 80 min
-const RESOLVE_ACTIVE_UNTIL_MS = 4 * 60 * 60 * 1000; // "active" resolution window ends kickoff + 4h
+const RESOLVE_MIN_AGE_MS = 115 * 60 * 1000;         // don't attempt before kickoff + 115 min
+                                                    //   (45' + 15' HT + 45' = 105 min minimum regulation clock,
+                                                    //    plus buffer for stoppage time = earliest plausible finish)
+const RESOLVE_ACTIVE_UNTIL_MS = 7 * 60 * 60 * 1000; // "active" resolution window ends kickoff + 7h
+                                                    //   (margin for extra-time/penalty matches plus TxLINE data-finalization
+                                                    //    lag — e.g. FRA–ESP semifinal wasn't marked final until ~6h5m post-kickoff)
 const CREATE_CUTOFF_MS = 48 * 60 * 60 * 1000;       // never create a market >48h after kickoff
 
 const DEFAULT_STAKE_LAMPORTS = 10_000_000;          // 0.01 SOL fixed per-prediction stake
@@ -634,7 +638,7 @@ async function resolutionCycle() {
       let inActiveWindow;
       if (info) {
         const sinceKickoff = now - info.startTime;
-        if (sinceKickoff < RESOLVE_MIN_AGE_MS) continue; // too early (before kickoff+80m)
+        if (sinceKickoff < RESOLVE_MIN_AGE_MS) continue; // too early (before kickoff+115m)
         inActiveWindow = sinceKickoff <= RESOLVE_ACTIVE_UNTIL_MS;
       } else {
         // Unknown kickoff — e.g. a market created before this worker started,

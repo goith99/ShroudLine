@@ -63,59 +63,88 @@ async function fetchFixtureMeta(fixtureId: string): Promise<FixtureMeta | null> 
 
 export interface UseFixtureMeta {
   meta: FixtureMeta | null;
-  /** True while the API lookup is in flight (static hits are never loading). */
+  /**
+   * True while the API lookup is in flight. A static entry that already has a
+   * `result` is never loading; a static entry *without* a result still shows a
+   * brief loading window while we check the API for a score to fill in, but the
+   * static `meta` is rendered the whole time (consumers gate spinners on
+   * `loading && !meta`), so there is no visible flash.
+   */
   loading: boolean;
+}
+
+// Combine the static dict entry (source of truth for names/stage/kickoff) with
+// whatever the API returned. The static entry always wins for every field
+// except a *missing* result, which the API may fill in once the match resolves.
+function resolveMeta(
+  staticMeta: FixtureMeta | undefined,
+  apiMeta: FixtureMeta | null,
+): FixtureMeta | null {
+  if (!staticMeta) return apiMeta;
+  if (staticMeta.result) return staticMeta;
+  return apiMeta?.result ? { ...staticMeta, result: apiMeta.result } : staticMeta;
 }
 
 export function useFixtureMeta(fixtureId: string): UseFixtureMeta {
   const staticMeta: FixtureMeta | undefined = FIXTURES[fixtureId];
+  // A static entry with a result is complete. Anything else — no static entry,
+  // or a static entry still missing its result — warrants an API lookup (for
+  // the score, or for the whole fixture) as long as the id is well-formed.
+  const staticComplete = !!staticMeta && !!staticMeta.result;
+  const needsLookup =
+    !staticComplete && !!fixtureId && isValidFixtureId(fixtureId);
 
   const initial = (): UseFixtureMeta => {
-    if (staticMeta) return { meta: staticMeta, loading: false };
-    if (!fixtureId || !isValidFixtureId(fixtureId)) return { meta: null, loading: false };
+    if (staticComplete) return { meta: staticMeta as FixtureMeta, loading: false };
+    // No lookup possible (invalid/empty id) — fall back to the static entry as-is.
+    if (!needsLookup) return { meta: staticMeta ?? null, loading: false };
     if (clientCache.has(fixtureId)) {
-      return { meta: clientCache.get(fixtureId) ?? null, loading: false };
+      const api = clientCache.get(fixtureId) ?? null;
+      return { meta: resolveMeta(staticMeta, api), loading: false };
     }
-    return { meta: null, loading: true };
+    // Lookup pending: show the static entry (if any) immediately.
+    return { meta: staticMeta ?? null, loading: true };
   };
 
   const [state, setState] = useState<UseFixtureMeta>(initial);
 
   useEffect(() => {
-    // 1. Static dictionary wins — no fetch.
-    if (staticMeta) {
-      setState({ meta: staticMeta, loading: false });
+    // 1. Static entry already has a result — nothing to fetch.
+    if (staticComplete) {
+      setState({ meta: staticMeta as FixtureMeta, loading: false });
       return;
     }
-    // 2. Nothing to look up (empty / non-numeric id).
-    if (!fixtureId || !isValidFixtureId(fixtureId)) {
-      setState({ meta: null, loading: false });
+    // 2. Nothing to look up (empty / non-numeric id) — static entry as-is.
+    if (!needsLookup) {
+      setState({ meta: staticMeta ?? null, loading: false });
       return;
     }
     // 3. Already resolved once this session.
     if (clientCache.has(fixtureId)) {
-      setState({ meta: clientCache.get(fixtureId) ?? null, loading: false });
+      const api = clientCache.get(fixtureId) ?? null;
+      setState({ meta: resolveMeta(staticMeta, api), loading: false });
       return;
     }
 
     let alive = true;
-    setState({ meta: null, loading: true });
+    // Keep the static entry visible while we look up the score.
+    setState({ meta: staticMeta ?? null, loading: true });
 
     let p = inFlight.get(fixtureId);
     if (!p) {
       p = fetchFixtureMeta(fixtureId);
       inFlight.set(fixtureId, p);
     }
-    void p.then((meta) => {
-      clientCache.set(fixtureId, meta);
+    void p.then((api) => {
+      clientCache.set(fixtureId, api);
       inFlight.delete(fixtureId);
-      if (alive) setState({ meta, loading: false });
+      if (alive) setState({ meta: resolveMeta(staticMeta, api), loading: false });
     });
 
     return () => {
       alive = false;
     };
-  }, [fixtureId, staticMeta]);
+  }, [fixtureId, staticMeta, staticComplete, needsLookup]);
 
   return state;
 }
