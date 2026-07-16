@@ -207,3 +207,26 @@ export function formatKickoff(iso: string): string {
     timeStyle: "short",
   });
 }
+
+/**
+ * Absolute kickoff time, always in UTC and explicitly labelled — e.g.
+ * "Jul 14, 2026, 19:00 UTC". Distinct from `formatKickoff`, which renders in the
+ * viewer's local timezone with no zone label; use this where an unambiguous,
+ * zone-explicit timestamp is wanted (shown in addition to the short local one).
+ */
+export function formatKickoffUtc(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const time = d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  });
+  return `${date}, ${time} UTC`;
+}
