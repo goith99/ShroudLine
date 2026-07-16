@@ -6,12 +6,10 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import {
   displayStatus,
   fetchAllMarkets,
-  formatKickoff,
+  formatKickoffUtc,
   formatSol,
   MarketAccount,
   MarketEntry,
-  marketStatus,
-  MarketStatus,
   marketTitle,
   OUTCOME_AWAY,
   OUTCOME_DRAW,
@@ -21,11 +19,6 @@ import {
 import { fixtureMeta, FixtureMeta, resultDecidedLabel } from "@/lib/fixtures";
 import { useFixtureMeta } from "@/lib/useFixtureMeta";
 import WhyShroudLine from "@/components/WhyShroudLine";
-
-const STATUS_ORDER: Record<MarketStatus, number> = {
-  open: 0,
-  resolved: 1,
-};
 
 function Scoreboard({
   account,
@@ -70,9 +63,11 @@ function Scoreboard({
                 : ""
           }`}
         >
-          <span className="sb-name">{meta.home}</span>
+          <span className="sb-name">
+            {meta.home}
+            {winner === OUTCOME_HOME && <span className="sb-winmark"> (WIN)</span>}
+          </span>
           {result && <span className="sb-score">{result.homeScore}</span>}
-          {winner === OUTCOME_HOME && <span className="sb-tag">Win</span>}
         </div>
         <div
           className={`sb-row ${
@@ -83,9 +78,11 @@ function Scoreboard({
                 : ""
           }`}
         >
-          <span className="sb-name">{meta.away}</span>
+          <span className="sb-name">
+            {meta.away}
+            {winner === OUTCOME_AWAY && <span className="sb-winmark"> (WIN)</span>}
+          </span>
           {result && <span className="sb-score">{result.awayScore}</span>}
-          {winner === OUTCOME_AWAY && <span className="sb-tag">Win</span>}
         </div>
       </div>
       {decided && <div className="sb-decided">{decided}</div>}
@@ -112,12 +109,11 @@ function MarketCard({ publicKey, account }: MarketEntry) {
         <span>
           Picks <strong>{account.predictionCount.toString()}</strong>
         </span>
-        <span>
-          Closes{" "}
-          <strong>
-            {meta ? formatKickoff(meta.kickoffUtc) : "at kickoff"}
-          </strong>
-        </span>
+        {meta && (
+          <span className="sb-meta-full">
+            Kickoff <strong>{formatKickoffUtc(meta.kickoffUtc)}</strong>
+          </span>
+        )}
         {status === "settled" && (
           <span
             className="verify-tag"
@@ -140,18 +136,19 @@ export default function MarketsPage() {
     setError(null);
     try {
       const all = await fetchAllMarkets(connection);
-      all.sort((a, b) => {
-        const byStatus =
-          STATUS_ORDER[marketStatus(a.account)] -
-          STATUS_ORDER[marketStatus(b.account)];
-        if (byStatus !== 0) return byStatus;
-        // known fixtures (real team names) above unnamed demo markets
-        const byKnown =
-          (fixtureMeta(a.account.fixtureId.toString()) ? 0 : 1) -
-          (fixtureMeta(b.account.fixtureId.toString()) ? 0 : 1);
-        if (byKnown !== 0) return byKnown;
-        return b.account.totalStaked.cmp(a.account.totalStaked);
-      });
+      // Newest-match-first: sort by kickoff time descending, so the soonest
+      // upcoming (or most recently played) match is at the top and the oldest is
+      // at the bottom. Kickoff is only known synchronously here from the static
+      // FIXTURES dict; unknown-fixture markets (kickoff comes from the async API
+      // fallback, not resolved at sort time) get a sentinel of 0 so they sort to
+      // the bottom as "oldest". The sort runs once at load and isn't re-run when
+      // per-card hooks resolve, so no card reorders after mount.
+      const kickoffMs = (e: MarketEntry): number => {
+        const m = fixtureMeta(e.account.fixtureId.toString());
+        const t = m ? Date.parse(m.kickoffUtc) : NaN;
+        return Number.isNaN(t) ? 0 : t;
+      };
+      all.sort((a, b) => kickoffMs(b) - kickoffMs(a));
       setMarkets(all);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

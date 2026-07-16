@@ -272,12 +272,56 @@ a.card:hover {
   margin-bottom: 1.5rem;
 }
 
+/* Explicit, responsive column count (was auto-fill/minmax, which only ever fit
+   ~2 columns inside the 780px reading column). Mobile-first: 1 column, stepping
+   up to 4 on wide desktop. See the wide-viewport breakout below — at 4 columns
+   the section widens past the 780px container so the cards aren't cramped. */
 .markets-grid {
   display: grid;
-  /* auto-fill so it collapses to a single column on narrow screens naturally;
-     min(300px, 100%) keeps that single column from overflowing tiny viewports. */
-  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  grid-template-columns: 1fr; /* mobile: 1 column */
   gap: 0.9rem;
+}
+
+@media (min-width: 560px) {
+  .markets-grid {
+    grid-template-columns: repeat(2, 1fr); /* small tablet: 2 columns */
+  }
+}
+
+@media (min-width: 860px) {
+  .markets-grid {
+    grid-template-columns: repeat(3, 1fr); /* medium/tablet: 3 columns */
+  }
+}
+
+@media (min-width: 1160px) {
+  .markets-grid {
+    grid-template-columns: repeat(4, 1fr); /* wide desktop: 4 columns */
+    gap: 0.8rem;
+  }
+  /* Break the markets grid out of the 780px reading column so 4-across has room.
+     The container is margin-auto centered, so 50% is the viewport centre; pull
+     symmetric negative margins to a wider, still-centred, overflow-safe block. */
+  .markets-section {
+    width: min(1240px, 94vw);
+    margin-left: calc(50% - min(1240px, 94vw) / 2);
+    margin-right: calc(50% - min(1240px, 94vw) / 2);
+  }
+  /* Slightly tighten card internals at 4-across so the denser layout doesn't
+     feel cramped (text stays at readable sizes). */
+  .markets-grid .sb-top {
+    padding: 0.5rem 0.9rem;
+  }
+  .markets-grid .sb-teams {
+    padding: 0.6rem 0.9rem 0.4rem;
+  }
+  .markets-grid .sb-name {
+    font-size: 1.2rem;
+  }
+  .markets-grid .sb-meta {
+    padding: 0.5rem 0.9rem 0.75rem;
+    gap: 0.25rem 1.1rem;
+  }
 }
 
 .markets-grid > .card {
@@ -319,7 +363,8 @@ a.card:hover {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
-  /* push the score + Win tag to the right edge of the row */
+  /* push the score to the right edge of the row (the "(WIN)" mark sits inline
+     with the name on the left, so it stays out of this auto margin) */
   margin-right: auto;
 }
 
@@ -357,15 +402,15 @@ a.card:hover {
   color: var(--reveal);
 }
 
-.sb-tag {
+/* inline "(WIN)" mark appended to the winning team's name — echoes the old pill's
+   mono uppercase gold, but sits next to the name. Colour is inherited from the
+   winning row's gold `.sb-name`, so it stays in sync with the name. */
+.sb-winmark {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--reveal);
-  border: 1px solid rgba(179, 130, 12, 0.45);
-  border-radius: 4px;
-  padding: 0.08rem 0.5rem;
+  font-size: 0.6em;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  vertical-align: 0.12em;
 }
 
 .sb-draw {
@@ -422,6 +467,12 @@ a.card:hover {
   font-weight: 500;
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
+}
+
+/* a meta item that must occupy its own line (the stacked Kickoff / Market-closes
+   timestamps), regardless of how the shorter Pool/Picks items wrap above it */
+.sb-meta-full {
+  flex-basis: 100%;
 }
 
 /* ---- panels (detail page) ---- */

@@ -15,8 +15,21 @@
 import { useEffect, useState } from "react";
 import { FIXTURES, FixtureMeta, FixtureResult, ResultKind } from "./fixtures";
 
-const clientCache = new Map<string, FixtureMeta | null>();
-const inFlight = new Map<string, Promise<FixtureMeta | null>>();
+// What the /api/fixture-meta route can return. Names/kickoff/stage are OPTIONAL
+// on purpose: for a match that has already been played, the fixture has dropped
+// out of TxLINE's upcoming snapshot, so the route returns null names but can
+// still return a `result` (from the historical feed). We must keep that result
+// even when the names are missing — the static dict supplies the names.
+interface ApiMeta {
+  home?: string;
+  away?: string;
+  kickoffUtc: string;
+  stage: string;
+  result?: FixtureResult;
+}
+
+const clientCache = new Map<string, ApiMeta | null>();
+const inFlight = new Map<string, Promise<ApiMeta | null>>();
 
 function isValidFixtureId(id: string): boolean {
   return /^\d{1,20}$/.test(id);
@@ -41,19 +54,24 @@ function parseResult(raw: unknown): FixtureResult | undefined {
   };
 }
 
-async function fetchFixtureMeta(fixtureId: string): Promise<FixtureMeta | null> {
+async function fetchFixtureMeta(fixtureId: string): Promise<ApiMeta | null> {
   try {
     const res = await fetch(`/api/fixture-meta/${fixtureId}`);
     if (!res.ok) return null;
     const d = (await res.json()) as Record<string, unknown>;
-    // Only usable as a rendered fixture if we actually have both team names.
-    if (typeof d.home !== "string" || typeof d.away !== "string") return null;
+    const home = typeof d.home === "string" ? d.home : undefined;
+    const away = typeof d.away === "string" ? d.away : undefined;
+    const result = parseResult(d.result);
+    // Nothing usable at all — no names AND no score. (A played-out match returns
+    // null names but a real `result`; we must NOT drop that, since the static
+    // dict already supplies the names — see resolveMeta.)
+    if (!home && !away && !result) return null;
     return {
-      home: d.home,
-      away: d.away,
+      home,
+      away,
       kickoffUtc: typeof d.kickoffUtc === "string" ? d.kickoffUtc : "",
       stage: typeof d.stage === "string" ? d.stage : "World Cup",
-      result: parseResult(d.result),
+      result,
     };
   } catch {
     // Network error etc. — treat as "unknown", the caller falls back gracefully.
@@ -78,11 +96,22 @@ export interface UseFixtureMeta {
 // except a *missing* result, which the API may fill in once the match resolves.
 function resolveMeta(
   staticMeta: FixtureMeta | undefined,
-  apiMeta: FixtureMeta | null,
+  apiMeta: ApiMeta | null,
 ): FixtureMeta | null {
-  if (!staticMeta) return apiMeta;
-  if (staticMeta.result) return staticMeta;
-  return apiMeta?.result ? { ...staticMeta, result: apiMeta.result } : staticMeta;
+  if (staticMeta) {
+    // Static dict owns names/stage/kickoff; the API only fills a MISSING result.
+    if (staticMeta.result) return staticMeta;
+    return apiMeta?.result ? { ...staticMeta, result: apiMeta.result } : staticMeta;
+  }
+  // No static entry — we can only render a card if the API gave us both names.
+  if (!apiMeta || !apiMeta.home || !apiMeta.away) return null;
+  return {
+    home: apiMeta.home,
+    away: apiMeta.away,
+    kickoffUtc: apiMeta.kickoffUtc,
+    stage: apiMeta.stage,
+    result: apiMeta.result,
+  };
 }
 
 export function useFixtureMeta(fixtureId: string): UseFixtureMeta {

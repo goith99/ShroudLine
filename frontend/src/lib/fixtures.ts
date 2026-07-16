@@ -120,6 +120,20 @@ export const FIXTURES: Record<string, FixtureMeta> = {
     kickoffUtc: "2026-07-15T19:00:00Z",
     stage: "World Cup 2026 — Semifinal",
   },
+
+  // ---- Final & Third Place (upcoming, not yet played — no result) ----
+  "18257739": {
+    home: "Spain",
+    away: "Argentina",
+    kickoffUtc: "2026-07-19T19:00:00Z",
+    stage: "World Cup 2026 — Final",
+  },
+  "18257865": {
+    home: "France",
+    away: "England",
+    kickoffUtc: "2026-07-18T21:00:00Z",
+    stage: "World Cup 2026 — Third Place",
+  },
 };
 
 export function fixtureMeta(fixtureId: string): FixtureMeta | undefined {

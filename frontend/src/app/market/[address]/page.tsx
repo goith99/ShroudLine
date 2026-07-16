@@ -16,7 +16,7 @@ import {
   arciumAccounts,
   displayStatus,
   fetchMxePublicKey,
-  formatKickoff,
+  formatKickoffUtc,
   formatSol,
   getProgram,
   getReadonlyProgram,
@@ -113,9 +113,11 @@ function MatchBoard({
                 : ""
           }`}
         >
-          <span className="sb-name">{meta.home}</span>
+          <span className="sb-name">
+            {meta.home}
+            {winner === OUTCOME_HOME && <span className="sb-winmark"> (WIN)</span>}
+          </span>
           {result && <span className="sb-score">{result.homeScore}</span>}
-          {winner === OUTCOME_HOME && <span className="sb-tag">Win</span>}
         </div>
         <div
           className={`sb-row ${
@@ -126,9 +128,11 @@ function MatchBoard({
                 : ""
           }`}
         >
-          <span className="sb-name">{meta.away}</span>
+          <span className="sb-name">
+            {meta.away}
+            {winner === OUTCOME_AWAY && <span className="sb-winmark"> (WIN)</span>}
+          </span>
           {result && <span className="sb-score">{result.awayScore}</span>}
-          {winner === OUTCOME_AWAY && <span className="sb-tag">Win</span>}
         </div>
         {decided && (
           <div className="sb-decided" style={{ margin: "0.4rem 0 0" }}>
@@ -443,12 +447,11 @@ export default function MarketDetailPage({
           <span>
             Wins pay <strong>{formatSol(payout)}</strong>
           </span>
-          <span>
-            Closes{" "}
-            <strong>
-              {meta ? formatKickoff(meta.kickoffUtc) : "at kickoff"}
-            </strong>
-          </span>
+          {meta && (
+            <span className="sb-meta-full">
+              Kickoff <strong>{formatKickoffUtc(meta.kickoffUtc)}</strong>
+            </span>
+          )}
         </div>
       </div>
 
